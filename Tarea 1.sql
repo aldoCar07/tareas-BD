@@ -80,9 +80,9 @@ group by c.category_name;
 
 --¿Cómo podemos generar el reporte de reorder?
 
-select p.product_name, p.units_in_stock, p.units_on_order, p.reorder_level,
-s.company_name, s.contact_name, s.contact_title, p.discontinued
-from products p join suppliers s using(supplier_id);
+select product_id, product_name, units_in_stock, reorder_level 
+from products p 
+where (units_in_stock<reorder_level);
 
 --¿A donde va nuestro envío más voluminoso?
 select o.ship_country, od.quantity
@@ -90,11 +90,21 @@ from order_details od join orders o on (od.order_id = o.order_id)
 order by od.quantity desc limit 1;
 
 --¿Cómo creamos una columna en customers que nos diga si un cliente es bueno, regular, o malo?
-alter table customers 
-add column calidad varchar(7) default 'regular';
-
-alter table customers
-add constraint CK_customers_calidad check (calidad in ('bueno', 'regular', 'malo')); 
+select t.company_name, t.total,
+	case 
+		when t.total < 10000 then 'malo'
+		when t.total >= 10000 and t.total <100000 then 'regular'
+		else 'bueno'
+	end as categoria
+from (
+	select c.company_name,  
+		sum(od.unit_price*od.quantity*(1-od.discount))as total  
+	from customers c 
+		join orders o using (customer_id)
+		join order_details od using (order_id)
+	group by c.company_name
+	order by total
+) as t;
 
 --¿Qué colaboradores chambearon durante las fiestas de navidad?
 select e.first_name, e.last_name 
@@ -147,4 +157,41 @@ values('Wanda Maximoff', 'wanda.maximoff@avengers.org'),
 ('Rocket','shhhhhhhh@darknet.ru');
 
 SELECT * FROM heroes WHERE email NOT LIKE '%@%.%';
+
+-- tarea 3---------------------------------------
+--¿Cómo obtenemos todos los nombres y correos de nuestros clientes canadienses para una campaña?
+select c.first_name || ' ' || c.last_name full_name, c.email, c3.country 
+from customer c join address a using(address_id)
+join city c2 using(city_id)
+join country c3 using (country_id)
+where c3.country = 'Canada';
+
+--¿Qué cliente ha rentado más de nuestra sección de adultos?
+select c.first_name || ' ' || c.last_name as full_name, count(*)
+from customer c join rental r using(customer_id)
+join inventory i using (inventory_id)
+join film f using (film_id)
+where f.rating = 'NC-17'
+group by c.customer_id
+order by 2 desc;
+
+
+--¿Qué películas son las más rentadas en todas nuestras stores?
+select distinct on(i.store_id) i.store_id, c.city, f.title, count(f.film_id)
+from film f join inventory i using(film_id)
+join rental r using(inventory_id)
+join store s using (store_id)
+join address a using (address_id)
+join city c using (city_id)
+group by i.store_id, c.city, f.film_id 
+order by i.store_id, count(f.film_id) desc;
+
+--¿Cuál es nuestro revenue por store?
+select s.store_id, c.city,  sum(p.amount)
+from city c join address a using (city_id)
+join store s using (address_id)
+join inventory i using(store_id)
+join rental r using(inventory_id)
+join payment p using(rental_id)
+group by s.store_id, c.city;
 
