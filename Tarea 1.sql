@@ -235,7 +235,7 @@ with promedio as (
 		from customer c join primer_ultimo_pago using (customer_id)
 		order by 3 asc
 	)
-	select floor(promedio_tiempo_entre_pagos/1)*1 as days, count(*)
+	select promedio_tiempo_entre_pagos as days, count(*)
     from promedio
     group by 1
     order by 1;
