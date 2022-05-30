@@ -199,11 +199,58 @@ group by s.store_id, c.city;
 
 
 ------------------------------tarea 1 funciones
---Una aplicación frecuente de Ciencia de Datos aplicada a la industria del microlending es el de calificaciones crediticias (credit scoring). Puede interpretarse de muchas formas: propensión a pago, probabilidad de default, etc. La intuición nos dice que las variables más importantes son el saldo o monto del crédito, y la puntualidad del pago; sin embargo, otra variable que frecuentemente escapa a los analistas es el tiempo entre cada pago. La puntualidad es una pésima variable para anticipar default o inferir capacidad de pago de micropréstamos, por su misma naturaleza. Si deseamos examinar la viabilidad de un producto de crédito para nuestras videorental stores:
+--Una aplicación frecuente de Ciencia de Datos aplicada a la industria del microlending es el de calificaciones
+--crediticias (credit scoring). Puede interpretarse de muchas formas: propensión a pago, probabilidad de default,
+--etc. La intuición nos dice que las variables más importantes son el saldo o monto del crédito,
+--y la puntualidad del pago; sin embargo, otra variable que frecuentemente escapa a los analistas es el tiempo 
+--entre cada pago. La puntualidad es una pésima variable para anticipar default o inferir capacidad de pago 
+--de micropréstamos, por su misma naturaleza. Si deseamos examinar la viabilidad de un producto de crédito para 
+--nuestras videorental stores:
 
 --Cuál es el promedio, en formato human-readable, de tiempo entre cada pago por cliente de la BD Sakila?
+--solución: para saber el promedio sólo necesito saber la diferencia de tiempo entre el primer pago y el último
+-- y dividirlo entre los n pagos menos 1. 
+--(resumido en días) porque que flojera estar viendo hasta las horas
+--después dividirlo entre la cantidad de pagos
+with primer_ultimo_pago as(
+	select c.customer_id, count(p.payment_id) as n, min(p.payment_date) as primer_pago, max(p.payment_date) as ultimo_pago
+	from customer c join payment p using (customer_id)
+	group by c.customer_id
+	order by c.customer_id asc
+	)
+	select c.customer_id, c.first_name || ' ' || c.last_name as full_name, 
+	date_trunc('day', age(primer_ultimo_pago.ultimo_pago, primer_ultimo_pago.primer_pago)/(primer_ultimo_pago.n-1)) as promedio_tiempo_entre_pagos
+	from customer c join primer_ultimo_pago using (customer_id);
+
 --Sigue una distribución normal?
+with promedio as (
+	with primer_ultimo_pago as(
+		select c.customer_id, count(p.payment_id) as n, min(p.payment_date) as primer_pago, max(p.payment_date) as ultimo_pago
+		from customer c join payment p using (customer_id)
+		group by c.customer_id
+		order by c.customer_id asc
+		)
+		select c.customer_id, c.first_name || ' ' || c.last_name as full_name, 
+		date_trunc('day', age(primer_ultimo_pago.ultimo_pago, primer_ultimo_pago.primer_pago)/(primer_ultimo_pago.n-1)) as promedio_tiempo_entre_pagos
+		from customer c join primer_ultimo_pago using (customer_id)
+	)
+
 --Qué tanto difiere ese promedio del tiempo entre rentas por cliente?
+--saqué la desviación estándar de la columna de promedios de los clientes de la pregunta 1
+with promedio as (
+	with primer_ultimo_pago as(
+		select c.customer_id, count(p.payment_id) as n, min(p.payment_date) as primer_pago, max(p.payment_date) as ultimo_pago
+		from customer c join payment p using (customer_id)
+		group by c.customer_id
+		order by c.customer_id asc
+		)
+		select c.customer_id, c.first_name || ' ' || c.last_name as full_name, 
+		to_char(date_trunc('day', age(primer_ultimo_pago.ultimo_pago, primer_ultimo_pago.primer_pago)/(primer_ultimo_pago.n-1)), 'DD'):: integer as promedio_tiempo_entre_pagos
+		from customer c join primer_ultimo_pago using (customer_id)
+	)
+	select stddev(promedio.promedio_tiempo_entre_pagos) from promedio;
+	
+	
 
 
 
