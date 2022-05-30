@@ -231,9 +231,14 @@ with promedio as (
 		order by c.customer_id asc
 		)
 		select c.customer_id, c.first_name || ' ' || c.last_name as full_name, 
-		date_trunc('day', age(primer_ultimo_pago.ultimo_pago, primer_ultimo_pago.primer_pago)/(primer_ultimo_pago.n-1)) as promedio_tiempo_entre_pagos
+		to_char(date_trunc('day', age(primer_ultimo_pago.ultimo_pago, primer_ultimo_pago.primer_pago)/(primer_ultimo_pago.n-1)), 'DD'):: integer as promedio_tiempo_entre_pagos
 		from customer c join primer_ultimo_pago using (customer_id)
+		order by 3 asc
 	)
+	select floor(promedio_tiempo_entre_pagos/1)*1 as days, count(*)
+    from promedio
+    group by 1
+    order by 1;
 
 --Qué tanto difiere ese promedio del tiempo entre rentas por cliente?
 --saqué la desviación estándar de la columna de promedios de los clientes de la pregunta 1
